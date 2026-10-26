@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" width="220" height="60">
+  <!-- Cambridge International Education logo (simplified representation) -->
+  <rect width="220" height="60" fill="white"/>
+  <!-- Shield/crest simplified -->
+  <path d="M10,8 L10,42 Q10,50 20,54 L35,58 L50,54 Q60,50 60,42 L60,8 Z" fill="#003B71"/>
+  <path d="M15,12 L15,40 Q15,47 23,51 L35,54 L47,51 Q55,47 55,40 L55,12 Z" fill="#C8102E"/>
+  <!-- Cross on shield -->
+  <rect x="32" y="12" width="6" height="42" fill="white" opacity="0.9"/>
+  <rect x="15" y="28" width="40" height="6" fill="white" opacity="0.9"/>
+  <!-- Text -->
+  <text x="68" y="22" font-family="Georgia, serif" font-size="13" font-weight="bold" fill="#003B71">CAMBRIDGE</text>
+  <text x="68" y="38" font-family="Georgia, serif" font-size="10" fill="#003B71">International</text>
+  <text x="68" y="52" font-family="Georgia, serif" font-size="10" fill="#003B71">Education</text>
+</svg>

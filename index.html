@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IGCSE 0265 Computer Science – Practice Paper</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- CodeMirror 6 via esm.sh CDN (bundled as importmap) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "codemirror":           "https://esm.sh/codemirror@6.0.1",
+      "@codemirror/state":    "https://esm.sh/@codemirror/state@6.4.1",
+      "@codemirror/view":     "https://esm.sh/@codemirror/view@6.35.3",
+      "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.7",
+      "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1",
+      "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.8"
+    }
+  }
+  </script>
+
+  <!-- Load CodeMirror modules and signal readiness -->
+  <script type="module">
+    import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
+    import { EditorState } from '@codemirror/state';
+    import { python } from '@codemirror/lang-python';
+    import { defaultKeymap, indentWithTab, undo, redo } from '@codemirror/commands';
+    import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+    import { basicSetup } from 'codemirror';
+
+    window._cmCommands = { undo, redo };
+    window._cmModules = {
+      EditorView, EditorState, python, basicSetup,
+      keymap, defaultKeymap, indentWithTab,
+      lineNumbers, highlightActiveLine,
+      syntaxHighlighting, defaultHighlightStyle,
+    };
+    window._cmReady = true;
+  </script>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ─── Landing Page ─────────────────────────────────────────────────── -->
+  <div id="landing" style="display:flex;">
+    <div class="landing-card">
+      <img src="assets/cambridge-logo.svg" alt="Cambridge International Education">
+      <h1>0265 Computer Science<br>Component 2 Practice</h1>
+      <p>Load a practice paper to begin. Your teacher will have provided a link, or you can upload a paper file directly.</p>
+
+      <div id="drop-zone" role="button" tabindex="0" aria-label="Upload paper file">
+        <span class="drop-icon">&#128196;</span>
+        <span class="drop-label">Drop a paper file here</span>
+        <span class="drop-sub">or click to browse for a <code>.json</code> file</span>
+      </div>
+
+      <input type="file" id="file-input" accept=".json" style="display:none;">
+      <div id="landing-error"></div>
+    </div>
+  </div>
+
+  <!-- ─── Exam Shell ────────────────────────────────────────────────────── -->
+  <div id="exam-shell" style="display:none;">
+
+    <!-- Header -->
+    <header id="header">
+      <img id="header-logo" src="assets/cambridge-logo.svg" alt="Cambridge International Education">
+      <span id="exam-title">0265 Computer Science Component 2</span>
+
+      <div class="header-tools">
+        <button class="header-icon-btn" title="Flag question" aria-label="Flag question">&#9873;</button>
+        <button class="header-icon-btn" title="Notes" aria-label="Notes">&#128203;</button>
+        <button class="header-icon-btn" title="Annotate" aria-label="Annotate">&#9998;</button>
+        <button class="header-icon-btn" title="Grid view" aria-label="Grid view">&#9783;</button>
+      </div>
+
+      <div id="timer-wrap" title="Time remaining">
+        <span class="timer-icon">&#9201;</span>
+        <span id="timer-display">01:30:00</span>
+      </div>
+
+      <button class="accessibility-btn" title="Accessibility options" aria-label="Accessibility options">
+        &#9855; Accessibility
+      </button>
+    </header>
+
+    <!-- Editor Toolbar (only shown for code questions) -->
+    <div id="editor-toolbar" style="display:none;">
+      <div class="toolbar-group">
+        <button id="btn-undo" class="tb-btn" title="Undo" aria-label="Undo">&#8617;</button>
+        <button id="btn-redo" class="tb-btn" title="Redo" aria-label="Redo">&#8618;</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <button id="btn-zoom-out" class="tb-btn" title="Decrease font size" aria-label="Zoom out">&#128269;</button>
+        <button id="btn-zoom-in"  class="tb-btn" title="Increase font size" aria-label="Zoom in">&#128270;</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <button id="btn-copy"  class="tb-btn" title="Copy all code" aria-label="Copy">&#10697;</button>
+        <button id="btn-paste" class="tb-btn" title="Paste at cursor" aria-label="Paste">&#128203;</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <div class="toolbar-group">
+        <button id="btn-run"   class="tb-btn run-btn"  title="Run code (Ctrl+Enter)" aria-label="Run">&#9654; Run</button>
+        <button id="btn-stop"  class="tb-btn stop-btn" title="Stop execution" aria-label="Stop" disabled>&#9632;</button>
+        <button id="btn-stdin" class="tb-btn" title="Toggle stdin input" aria-label="Input lines">&#8801;</button>
+      </div>
+      <select id="lang-select" aria-label="Programming language">
+        <option value="python">Python</option>
+      </select>
+    </div>
+
+    <!-- Main panels -->
+    <div id="panels-container">
+      <div id="left-panel"></div>
+      <div id="panel-splitter" role="separator" aria-label="Resize panels"></div>
+      <div id="right-panel"></div>
+    </div>
+
+    <!-- Navigation bar -->
+    <nav id="nav-bar" aria-label="Question navigation">
+      <div id="nav-breadcrumb"></div>
+      <div class="nav-actions">
+        <button id="btn-prev" class="nav-btn">&#8249; Previous</button>
+        <button id="btn-next" class="nav-btn primary">Next &#8250;</button>
+      </div>
+    </nav>
+
+  </div><!-- /#exam-shell -->
+
+</div><!-- /#app -->
+
+<script src="editor.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

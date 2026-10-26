@@ -1,0 +1,81 @@
+{
+  "title": "0265 Computer Science Component 2 – Sample Practice Paper",
+  "duration_minutes": 90,
+  "questions": [
+    {
+      "id": "q11",
+      "label": "11",
+      "type": "text",
+      "parts": [
+        {
+          "id": "q11a",
+          "label": "11(a)",
+          "context_html": "<p>A database table <code>PLANET</code> contains data about some planets.</p><table><thead><tr><th>planet_name</th><th>distance_au</th><th>radius_km</th><th>number_moons</th><th>structure</th></tr></thead><tbody><tr><td>Earth</td><td>1</td><td>6378</td><td>1</td><td>rocky</td></tr><tr><td>Jupiter</td><td>5.2</td><td>69911</td><td>95</td><td>gas</td></tr><tr><td>Mars</td><td>1.5</td><td>3390</td><td>2</td><td>rocky</td></tr><tr><td>Mercury</td><td>0.4</td><td>2440</td><td>0</td><td>rocky</td></tr><tr><td>Neptune</td><td>30</td><td>24764</td><td>16</td><td>ice</td></tr><tr><td>Saturn</td><td>9.5</td><td>60250</td><td>146</td><td>gas</td></tr><tr><td>Uranus</td><td>19</td><td>25559</td><td>28</td><td>ice</td></tr><tr><td>Venus</td><td>0.72</td><td>6052</td><td>0</td><td>rocky</td></tr></tbody></table><p>A second table in the database contains the table <code>NEWS</code> that contains information about news stories related to space.</p><table><thead><tr><th>title</th><th>planet_name</th><th>year</th></tr></thead><tbody><tr><td>The Curiosity landed</td><td>Mars</td><td>2011</td></tr><tr><td>Voyager 1 about to leave the solar system</td><td></td><td>2012</td></tr><tr><td>A clearer picture of Pluto</td><td></td><td>2015</td></tr><tr><td>15 years of Opportunity</td><td>Mars</td><td>2019</td></tr><tr><td>A Dragon leaves for ISS</td><td>Earth</td><td>2012</td></tr></tbody></table>",
+          "question_html": "<p><strong>(a)</strong> State the primary key of the <code>PLANET</code> table.</p>",
+          "marks": 1,
+          "answer_type": "input"
+        },
+        {
+          "id": "q11b",
+          "label": "11(b)",
+          "question_html": "<p><strong>(b)</strong> Identify <strong>two</strong> records from the <code>NEWS</code> table that do not have a foreign key value. State the titles of these records.</p>",
+          "marks": 2,
+          "answer_type": "textarea",
+          "rows": 4
+        },
+        {
+          "id": "q11c",
+          "label": "11(c)",
+          "question_html": "<p><strong>(c)</strong> State the field used as a foreign key to link the <code>NEWS</code> table to the <code>PLANET</code> table.</p>",
+          "marks": 1,
+          "answer_type": "input"
+        },
+        {
+          "id": "q11d",
+          "label": "11(d)",
+          "question_html": "<p><strong>(d)</strong> Use the <code>PLANET</code> table to show the output given by the SQL statement:</p><pre style=\"background:#f0f4f8;padding:10px 14px;border-radius:4px;font-family:monospace;font-size:13px;margin:10px 0;\">SELECT planet_name, distance_au\n\nWHERE structure = \"gas\" OR num_moons &lt; 1\n\nORDER BY distance_au ASC;</pre>",
+          "marks": 3,
+          "answer_type": "textarea",
+          "rows": 8
+        }
+      ]
+    },
+    {
+      "id": "q14",
+      "label": "14",
+      "type": "code",
+      "code_group": "q14",
+      "starter_code": "room_type = ['single', 'twin', 'family', 'double', 'single', 'family', 'single',\n             'double', 'twin', 'family', 'single', 'double', 'twin', 'single',\n             'family', 'double', 'single', 'twin', 'family', 'double', 'single',\n             'twin', 'family', 'double', 'single', 'twin', 'family', 'double',\n             'single', 'twin']\nroom_occupied = ['available', 'booked', 'booked', 'available', 'booked',\n                 'available', 'booked', 'available', 'booked', 'booked',\n                 'available', 'booked', 'available', 'booked', 'available',\n                 'booked', 'available', 'booked', 'available', 'booked',\n                 'available', 'booked', 'available', 'booked', 'available',\n                 'booked', 'available', 'booked', 'available', 'booked']\n",
+      "parts": [
+        {
+          "id": "q14a",
+          "label": "14(a)",
+          "context_html": "<p>A hotel has 30 rooms of different types: single, double, twin and family. The list <code>room_type</code> contains the type of room. The list <code>room_occupied</code> contains the word <code>'booked'</code> or the word <code>'available'</code> depending on its status. The same index position in both lists refers to the same room.</p><p>The lists are already filled and initialised with data.</p>",
+          "question_html": "<p><strong>(a)</strong> Write a program to output the number of rooms available.</p>",
+          "marks": 3
+        },
+        {
+          "id": "q14b",
+          "label": "14(b)",
+          "context_html": "<p>A hotel has 30 rooms of different types: single, double, twin and family. The list <code>room_type</code> contains the type of room. The list <code>room_occupied</code> contains the word <code>'booked'</code> or the word <code>'available'</code> depending on its status. The same index position in both lists refers to the same room.</p><p>The lists are already filled and initialised with data.</p><p><strong>(b)</strong> A room can be booked up to a maximum of 14 nights. The cost of each type of room is shown in the table.</p><table><thead><tr><th>type of room</th><th>cost in dollars for one night</th></tr></thead><tbody><tr><td>double</td><td>60</td></tr><tr><td>family</td><td>90</td></tr><tr><td>single</td><td>40</td></tr><tr><td>twin</td><td>50</td></tr></tbody></table>",
+          "question_html": "<p>Write a program that:</p><ul><li>takes an input of number of nights and stores it in an appropriate variable</li><li>validates the input</li><li>takes an input of type of room</li><li>calculates the total cost of the room</li><li>outputs the total cost, type of room and number of nights.</li></ul><p>Inputs and outputs must contain suitable messages.</p>",
+          "marks": 6
+        },
+        {
+          "id": "q14c",
+          "label": "14(c)",
+          "context_html": "<p>A hotel has 30 rooms of different types: single, double, twin and family. The list <code>room_type</code> contains the type of room. The list <code>room_occupied</code> contains the word <code>'booked'</code> or the word <code>'available'</code> depending on its status. The same index position in both lists refers to the same room.</p><p>The lists are already filled and initialised with data.</p>",
+          "question_html": "<p><strong>(c)</strong> Employees of the hotel receive a discount of 20% when booking a room at the hotel.</p><p>Write the function <code>discount</code> to:</p><ul><li>take the cost of the booking as a parameter</li><li>return the cost with the discount applied</li><li>add a suitable comment to explain the purpose of the function.</li></ul>",
+          "marks": 3
+        },
+        {
+          "id": "q14d",
+          "label": "14(d)",
+          "context_html": "<p>A hotel has 30 rooms of different types: single, double, twin and family. The list <code>room_type</code> contains the type of room. The list <code>room_occupied</code> contains the word <code>'booked'</code> or the word <code>'available'</code> depending on its status. The same index position in both lists refers to the same room.</p><p>The lists are already filled and initialised with data.</p>",
+          "question_html": "<p><strong>(d)</strong> Write a program that:</p><ul><li>takes an input of room type</li><li>searches for an available room of that type</li><li>outputs <code>'room available'</code> and the room number if there is a room of that type available</li><li>outputs <code>'no rooms available of that type'</code> and asks the user if they want to search again</li><li>repeats the program if the user wants to search again.</li></ul>",
+          "marks": 3
+        }
+      ]
+    }
+  ]
+}
