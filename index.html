@@ -6,21 +6,19 @@
   <title>IGCSE 0265 Computer Science – Practice Paper</title>
   <link rel="stylesheet" href="style.css">
 
-  <!-- CodeMirror 6 via esm.sh CDN (bundled as importmap) -->
+  <!-- CodeMirror 6 via esm.sh CDN -->
   <script type="importmap">
   {
     "imports": {
-      "codemirror":           "https://esm.sh/codemirror@6.0.1",
-      "@codemirror/state":    "https://esm.sh/@codemirror/state@6.4.1",
-      "@codemirror/view":     "https://esm.sh/@codemirror/view@6.35.3",
+      "codemirror":              "https://esm.sh/codemirror@6.0.1",
+      "@codemirror/state":       "https://esm.sh/@codemirror/state@6.4.1",
+      "@codemirror/view":        "https://esm.sh/@codemirror/view@6.35.3",
       "@codemirror/lang-python": "https://esm.sh/@codemirror/lang-python@6.1.7",
-      "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.7.1",
-      "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.8"
+      "@codemirror/commands":    "https://esm.sh/@codemirror/commands@6.7.1",
+      "@codemirror/language":    "https://esm.sh/@codemirror/language@6.10.8"
     }
   }
   </script>
-
-  <!-- Load CodeMirror modules and signal readiness -->
   <script type="module">
     import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
     import { EditorState } from '@codemirror/state';
@@ -86,8 +84,8 @@
       </button>
     </header>
 
-    <!-- Editor Toolbar (only shown for code questions) -->
-    <div id="editor-toolbar" style="display:none;">
+    <!-- Editor Toolbar — always in DOM, shown/hidden by CSS class -->
+    <div id="editor-toolbar" class="hidden">
       <div class="toolbar-group">
         <button id="btn-undo" class="tb-btn" title="Undo" aria-label="Undo">&#8617;</button>
         <button id="btn-redo" class="tb-btn" title="Redo" aria-label="Redo">&#8618;</button>
@@ -104,7 +102,7 @@
       </div>
       <div class="toolbar-sep"></div>
       <div class="toolbar-group">
-        <button id="btn-run"   class="tb-btn run-btn"  title="Run code (Ctrl+Enter)" aria-label="Run">&#9654; Run</button>
+        <button id="btn-run"   class="tb-btn run-btn"  title="Run code" aria-label="Run">&#9654; Run</button>
         <button id="btn-stop"  class="tb-btn stop-btn" title="Stop execution" aria-label="Stop" disabled>&#9632;</button>
         <button id="btn-stdin" class="tb-btn" title="Toggle stdin input" aria-label="Input lines">&#8801;</button>
       </div>
@@ -115,10 +113,48 @@
 
     <!-- Main panels -->
     <div id="panels-container">
+
+      <!-- Left: question text — always re-rendered via innerHTML -->
       <div id="left-panel"></div>
+
       <div id="panel-splitter" role="separator" aria-label="Resize panels"></div>
-      <div id="right-panel"></div>
-    </div>
+
+      <!-- Right: persistent panels, shown/hidden per question type -->
+      <div id="right-panel">
+
+        <!-- CODE panel: editor + output. NEVER removed from DOM. -->
+        <div id="rp-code" class="rp-pane hidden">
+          <!-- stdin input area (toggled by ≡ button) -->
+          <div id="stdin-panel" class="stdin-panel hidden">
+            <div class="stdin-header">Input — one value per line for each <code>input()</code> call</div>
+            <textarea id="stdin-textarea" class="stdin-textarea" rows="4"
+              placeholder="value1&#10;value2&#10;value3"></textarea>
+          </div>
+          <!-- editor + output wrapper -->
+          <div id="editor-wrap" class="editor-wrap">
+            <div id="editor-container" class="editor-container"></div>
+            <div id="output-divider" class="output-divider">
+              <span class="divider-handle">&#8943;</span>
+            </div>
+            <div id="output-section" class="output-section">
+              <div class="output-header">Output</div>
+              <pre id="output-pre" class="output-pre"></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEXT panel: rendered per question -->
+        <div id="rp-text" class="rp-pane hidden">
+          <div id="text-answer-container"></div>
+        </div>
+
+        <!-- SUMMARY panel -->
+        <div id="rp-summary" class="rp-pane hidden">
+          <div id="summary-answers-container" class="summary-answers"></div>
+        </div>
+
+      </div><!-- /#right-panel -->
+    </div><!-- /#panels-container -->
 
     <!-- Navigation bar -->
     <nav id="nav-bar" aria-label="Question navigation">

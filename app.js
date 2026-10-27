@@ -309,25 +309,36 @@ function isStepAnswered(step) {
 
 function renderStep(step) {
   const leftPanel = document.getElementById('left-panel');
-  const rightPanel = document.getElementById('right-panel');
 
-  leftPanel.innerHTML = '';
-  rightPanel.innerHTML = '';
+  // Show/hide right-panel panes (editor, text, summary)
+  const rpCode    = document.getElementById('rp-code');
+  const rpText    = document.getElementById('rp-text');
+  const rpSummary = document.getElementById('rp-summary');
+  rpCode.classList.add('hidden');
+  rpText.classList.add('hidden');
+  rpSummary.classList.add('hidden');
 
-  // Hide/show editor toolbar
-  document.getElementById('editor-toolbar').style.display =
-    step.type === 'code' ? 'flex' : 'none';
+  // Show/hide editor toolbar
+  const toolbar = document.getElementById('editor-toolbar');
+  if (step.type === 'code') {
+    toolbar.classList.remove('hidden');
+  } else {
+    toolbar.classList.add('hidden');
+  }
 
   if (step.type === 'code') {
-    renderCodeStep(step, leftPanel, rightPanel);
+    rpCode.classList.remove('hidden');
+    renderCodeStep(step, leftPanel);
   } else if (step.type === 'text') {
-    renderTextStep(step, leftPanel, rightPanel);
+    rpText.classList.remove('hidden');
+    renderTextStep(step, leftPanel);
   } else if (step.type === 'summary') {
-    renderSummary(leftPanel, rightPanel);
+    rpSummary.classList.remove('hidden');
+    renderSummary(leftPanel);
   }
 }
 
-function renderCodeStep(step, leftPanel, rightPanel) {
+function renderCodeStep(step, leftPanel) {
   // Left: context + question
   leftPanel.innerHTML = `
     <div class="question-context">${step.contextHtml || ''}</div>
@@ -337,66 +348,25 @@ function renderCodeStep(step, leftPanel, rightPanel) {
     </div>
   `;
 
-  // Right: editor area
-  const editorWrap = document.createElement('div');
-  editorWrap.id = 'editor-wrap';
-  editorWrap.className = 'editor-wrap';
+  // Switch editor to this code group (handles save/restore internally)
+  EditorManager.switchTo(step.codeGroup, step.starterCode);
 
-  const editorContainer = document.createElement('div');
-  editorContainer.id = 'editor-container';
-  editorContainer.className = 'editor-container';
+  // Restore stdin value for this group
+  const stdinTa = document.getElementById('stdin-textarea');
+  if (stdinTa) {
+    // Re-bind: remove old listener by replacing node
+    const fresh = stdinTa.cloneNode(true);
+    stdinTa.parentNode.replaceChild(fresh, stdinTa);
+    fresh.value = State.stdinMap[step.codeGroup] || '';
+    fresh.addEventListener('input', () => {
+      State.stdinMap[step.codeGroup] = fresh.value;
+      saveToStorage();
+    });
+  }
 
-  const divider = document.createElement('div');
-  divider.className = 'output-divider';
-  divider.innerHTML = '<span class="divider-handle">&#8943;</span>';
-
-  const outputSection = document.createElement('div');
-  outputSection.id = 'output-section';
-  outputSection.className = 'output-section';
-  outputSection.innerHTML = `
-    <div class="output-header">Output</div>
-    <pre id="output-pre" class="output-pre"></pre>
-  `;
-
-  editorWrap.appendChild(editorContainer);
-  editorWrap.appendChild(divider);
-  editorWrap.appendChild(outputSection);
-  rightPanel.appendChild(editorWrap);
-
-  // Stdin panel (hidden by default)
-  const stdinPanel = document.createElement('div');
-  stdinPanel.id = 'stdin-panel';
-  stdinPanel.className = 'stdin-panel hidden';
-  stdinPanel.innerHTML = `
-    <div class="stdin-header">Input (one value per line for each <code>input()</code> call)</div>
-    <textarea id="stdin-textarea" class="stdin-textarea" rows="4" placeholder="value1&#10;value2&#10;value3"></textarea>
-  `;
-  rightPanel.insertBefore(stdinPanel, editorWrap);
-
-  // Initialise or re-attach the CodeMirror editor
-  // Use a small delay to ensure the DOM is settled
-  requestAnimationFrame(() => {
-    if (EditorManager.isReady()) {
-      const view = EditorManager.getOrCreate(step.codeGroup, step.starterCode, editorContainer);
-      if (!view) return;
-
-      // Restore stdin
-      const stdinTa = document.getElementById('stdin-textarea');
-      if (stdinTa) {
-        stdinTa.value = State.stdinMap[step.codeGroup] || '';
-        stdinTa.addEventListener('input', () => {
-          State.stdinMap[step.codeGroup] = stdinTa.value;
-          saveToStorage();
-        });
-      }
-    }
-  });
-
-  // Divider drag resize
-  setupOutputDivider(divider, editorContainer, outputSection);
 }
 
-function renderTextStep(step, leftPanel, rightPanel) {
+function renderTextStep(step, leftPanel) {
   leftPanel.innerHTML = `
     <div class="question-context">${step.contextHtml || ''}</div>
     <div class="question-body">
@@ -404,6 +374,9 @@ function renderTextStep(step, leftPanel, rightPanel) {
       ${step.marks ? `<p class="marks">[${step.marks} mark${step.marks !== 1 ? 's' : ''}]</p>` : ''}
     </div>
   `;
+
+  const container = document.getElementById('text-answer-container');
+  container.innerHTML = '';
 
   const answerWrap = document.createElement('div');
   answerWrap.className = 'text-answer-wrap';
@@ -435,10 +408,10 @@ function renderTextStep(step, leftPanel, rightPanel) {
     answerWrap.appendChild(ta);
   }
 
-  rightPanel.appendChild(answerWrap);
+  container.appendChild(answerWrap);
 }
 
-function renderSummary(leftPanel, rightPanel) {
+function renderSummary(leftPanel) {
   leftPanel.innerHTML = `
     <div class="summary-left">
       <h2>Summary</h2>
@@ -449,8 +422,18 @@ function renderSummary(leftPanel, rightPanel) {
   `;
   document.getElementById('btn-export').addEventListener('click', exportAnswers);
 
+  // De-duplicate code steps by codeGroup
+  const seenGroups = new Set();
   const summaryHtml = State.steps
-    .filter(s => s.type === 'code' || s.type === 'text')
+    .filter(s => {
+      if (s.type === 'text') return true;
+      if (s.type === 'code') {
+        if (seenGroups.has(s.codeGroup)) return false;
+        seenGroups.add(s.codeGroup);
+        return true;
+      }
+      return false;
+    })
     .map(s => {
       if (s.type === 'code') {
         const code = EditorManager.getCode(s.codeGroup);
@@ -471,7 +454,8 @@ function renderSummary(leftPanel, rightPanel) {
       }
     }).join('');
 
-  rightPanel.innerHTML = `<div class="summary-answers">${summaryHtml}</div>`;
+  const container = document.getElementById('summary-answers-container');
+  container.innerHTML = summaryHtml;
 }
 
 function escapeHtml(str) {
@@ -511,7 +495,13 @@ function setRunButtonState(state) {
 }
 
 // ─── Output divider drag resize ───────────────────────────────────────────────
-function setupOutputDivider(divider, editorContainer, outputSection) {
+// Registered once during initApp; elements are permanent in the DOM.
+function setupOutputDivider() {
+  const divider       = document.getElementById('output-divider');
+  const editorContainer = document.getElementById('editor-container');
+  const outputSection = document.getElementById('output-section');
+  if (!divider) return;
+
   let dragging = false;
   let startY, startEditorH, startOutputH;
 
@@ -810,6 +800,7 @@ async function initApp() {
   setupLanding();
   setupToolbar();
   setupPanelSplit();
+  setupOutputDivider(); // wire up the persistent output resize handle
 
   document.getElementById('btn-prev').addEventListener('click', navPrev);
   document.getElementById('btn-next').addEventListener('click', navNext);
@@ -820,8 +811,11 @@ async function initApp() {
   // Initialise Pyodide worker immediately (so it's ready when needed)
   initWorker();
 
-  // Load CodeMirror 6 modules then init EditorManager
+  // Wait for the CM6 ES module in index.html to signal readiness
   await loadCodeMirror();
+
+  // Mount the single persistent editor instance into #editor-container
+  EditorManager.mount();
 
   // Try URL-based paper loading
   const loaded = await loadPaperFromURL();

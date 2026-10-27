@@ -170,6 +170,23 @@ html, body {
   overflow: hidden;
   background: var(--bg-white);
   border-left: 1px solid var(--border);
+  position: relative;
+}
+
+/* ─── Global hidden utility ─────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ─── Right-panel panes ──────────────────────────────────────────────────────── */
+.rp-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+/* When shown, override the hidden above */
+.rp-pane:not(.hidden) {
+  display: flex;
 }
 
 /* ─── Editor Toolbar ─────────────────────────────────────────────────────────── */

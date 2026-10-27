@@ -1,173 +1,190 @@
 // editor.js — CodeMirror 6 wrapper
-// Manages one persistent editor instance per code_group
+//
+// KEY DESIGN: A single EditorView is created once and lives permanently in
+// #editor-container. It is NEVER moved or re-parented. When the student
+// navigates between code_groups we save the current text to a string cache
+// and load the new group's text — avoiding the DOM-detach crash in CM6.
 
 const EditorManager = (() => {
-  // Map of code_group -> { view: EditorView, state: any }
-  const groups = {};
-  let currentGroup = null;
-  let currentContainer = null;
+  // One view, created once.
+  let view = null;
 
-  // These will be set once CM6 modules are loaded
+  // Text content saved per code_group: { [groupId]: string }
+  const saved = {};
+
+  // Which code_group is currently loaded in the editor
+  let activeGroup = null;
+
+  // Pending restorations from localStorage (set before the view exists)
+  const pending = {};
+
+  // CM6 module refs, set via init()
   let EditorView, EditorState, python, basicSetup, keymap, defaultKeymap,
-      indentWithTab, lineNumbers, highlightActiveLine, syntaxHighlighting,
-      defaultHighlightStyle, autocompletion, closeBrackets;
+      indentWithTab;
 
   function isReady() {
     return !!EditorView;
   }
 
   function init(modules) {
-    ({
-      EditorView, EditorState, python, basicSetup, keymap, defaultKeymap,
-      indentWithTab, lineNumbers, highlightActiveLine, syntaxHighlighting,
-      defaultHighlightStyle, autocompletion, closeBrackets
-    } = modules);
+    ({ EditorView, EditorState, python, basicSetup, keymap, defaultKeymap,
+       indentWithTab } = modules);
   }
 
-  function getOrCreate(groupId, starterCode, container) {
-    currentGroup = groupId;
-    currentContainer = container;
+  // Call once after the DOM is ready to mount the editor into #editor-container.
+  function mount() {
+    if (view) return; // already mounted
+    if (!EditorView) { console.error('EditorManager.mount() called before init()'); return; }
 
-    // If there's a pending restore, use that code instead of the starter
-    if (groups[groupId] && groups[groupId]._pending !== undefined) {
-      const pendingCode = groups[groupId]._pending;
-      delete groups[groupId];
-      starterCode = pendingCode;
-    }
+    const container = document.getElementById('editor-container');
+    if (!container) { console.error('#editor-container not found'); return; }
 
-    if (!groups[groupId]) {
-      const startState = EditorState.create({
-        doc: starterCode || '',
-        extensions: [
-          basicSetup,
-          python(),
-          keymap.of([indentWithTab, ...defaultKeymap]),
-          EditorView.lineWrapping,
-          EditorView.theme({
-            '&': {
-              fontSize: '13px',
-              fontFamily: '"Fira Code", "Cascadia Code", "Consolas", monospace',
-              height: '100%',
-            },
-            '.cm-scroller': { overflow: 'auto', fontFamily: 'inherit' },
-            '.cm-content': { padding: '8px 0' },
-            '.cm-line': { padding: '0 8px' },
-            '.cm-gutters': {
-              backgroundColor: '#f0f4f8',
-              color: '#7a8a99',
-              border: 'none',
-              borderRight: '1px solid #dce3ea',
-              minWidth: '36px',
-            },
-            '.cm-activeLineGutter': { backgroundColor: '#e2eaf2' },
-            '.cm-activeLine': { backgroundColor: '#f5f8fc' },
-            '.cm-cursor': { borderLeftColor: '#003B71' },
-            '.cm-selectionBackground': { backgroundColor: '#bdd6f0 !important' },
-          }),
-        ],
-      });
-
-      groups[groupId] = {
-        view: new EditorView({
-          state: startState,
-          parent: container,
+    const startState = EditorState.create({
+      doc: '',
+      extensions: [
+        basicSetup,
+        python(),
+        keymap.of([indentWithTab, ...defaultKeymap]),
+        EditorView.lineWrapping,
+        EditorView.theme({
+          '&': {
+            fontSize: '13px',
+            fontFamily: '"Fira Code", "Cascadia Code", "Consolas", monospace',
+            height: '100%',
+          },
+          '.cm-scroller': { overflow: 'auto', fontFamily: 'inherit' },
+          '.cm-content': { padding: '8px 0' },
+          '.cm-line':    { padding: '0 8px' },
+          '.cm-gutters': {
+            backgroundColor: '#f0f4f8',
+            color: '#7a8a99',
+            border: 'none',
+            borderRight: '1px solid #dce3ea',
+            minWidth: '36px',
+          },
+          '.cm-activeLineGutter':  { backgroundColor: '#e2eaf2' },
+          '.cm-activeLine':        { backgroundColor: '#f5f8fc' },
+          '.cm-cursor':            { borderLeftColor: '#003B71' },
+          '.cm-selectionBackground': { backgroundColor: '#bdd6f0 !important' },
         }),
-      };
-    } else {
-      // Re-attach existing view to the container
-      container.appendChild(groups[groupId].view.dom);
-      groups[groupId].view.requestMeasure();
-    }
+      ],
+    });
 
-    return groups[groupId].view;
+    view = new EditorView({ state: startState, parent: container });
   }
 
-  function getCurrentView() {
-    if (!currentGroup || !groups[currentGroup]) return null;
-    return groups[currentGroup].view;
+  // Switch the editor to a given code_group.
+  // starterCode is only used the very first time a group is seen.
+  function switchTo(groupId, starterCode) {
+    if (!view) mount();
+    if (!view) return;
+
+    // Save current content before switching away
+    if (activeGroup !== null) {
+      saved[activeGroup] = view.state.doc.toString();
+    }
+
+    activeGroup = groupId;
+
+    // Determine what text to load
+    let text;
+    if (pending[groupId] !== undefined) {
+      // Restored from localStorage
+      text = pending[groupId];
+      delete pending[groupId];
+    } else if (saved[groupId] !== undefined) {
+      // Already visited this group this session
+      text = saved[groupId];
+    } else {
+      // First visit — use starter code
+      text = starterCode || '';
+    }
+
+    // Replace editor contents atomically
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: text },
+    });
+
+    view.requestMeasure();
   }
 
   function getCode(groupId) {
-    const g = groups[groupId];
-    if (!g) return '';
-    return g.view.state.doc.toString();
+    if (groupId === activeGroup && view) {
+      return view.state.doc.toString();
+    }
+    if (saved[groupId] !== undefined) return saved[groupId];
+    if (pending[groupId] !== undefined) return pending[groupId];
+    return '';
   }
 
-  function setCode(groupId, code) {
-    const g = groups[groupId];
-    if (!g) return;
-    g.view.dispatch({
-      changes: { from: 0, to: g.view.state.doc.length, insert: code },
-    });
+  function getCurrentView() {
+    return view;
   }
 
   function undo() {
-    const v = getCurrentView();
-    if (v) {
-      const cmUndo = (window._cmCommands || {}).undo;
-      if (cmUndo) cmUndo(v);
-    }
+    if (!view) return;
+    const cmUndo = (window._cmCommands || {}).undo;
+    if (cmUndo) cmUndo(view);
   }
 
   function redo() {
-    const v = getCurrentView();
-    if (v) {
-      const cmRedo = (window._cmCommands || {}).redo;
-      if (cmRedo) cmRedo(v);
-    }
+    if (!view) return;
+    const cmRedo = (window._cmCommands || {}).redo;
+    if (cmRedo) cmRedo(view);
   }
 
   function adjustFontSize(delta) {
-    const v = getCurrentView();
-    if (!v) return;
-    const current = parseFloat(getComputedStyle(v.dom).fontSize) || 13;
+    if (!view) return;
+    const current = parseFloat(getComputedStyle(view.dom).fontSize) || 13;
     const next = Math.min(24, Math.max(10, current + delta));
-    v.dom.style.fontSize = next + 'px';
+    view.dom.style.fontSize = next + 'px';
   }
 
   function copyAll() {
-    const v = getCurrentView();
-    if (!v) return;
-    navigator.clipboard.writeText(v.state.doc.toString()).catch(() => {});
+    if (!view) return;
+    navigator.clipboard.writeText(view.state.doc.toString()).catch(() => {});
   }
 
   function pasteAtCursor() {
-    const v = getCurrentView();
-    if (!v) return;
+    if (!view) return;
     navigator.clipboard.readText().then((text) => {
-      v.dispatch(v.state.replaceSelection(text));
-      v.focus();
+      view.dispatch(view.state.replaceSelection(text));
+      view.focus();
     }).catch(() => {});
   }
 
+  // Returns all known group contents (for localStorage export)
   function getAllGroupCodes() {
-    const result = {};
-    for (const [id, g] of Object.entries(groups)) {
-      if (g._pending !== undefined) {
-        result[id] = g._pending;
-      } else {
-        result[id] = g.view.state.doc.toString();
-      }
+    // Flush current view into saved
+    if (activeGroup !== null && view) {
+      saved[activeGroup] = view.state.doc.toString();
+    }
+    const result = { ...saved };
+    // Include any still-pending (never-visited) groups
+    for (const [id, code] of Object.entries(pending)) {
+      result[id] = code;
     }
     return result;
   }
 
+  // Called during localStorage restore, before the view may exist
   function restoreGroupCode(groupId, code) {
-    if (groups[groupId]) {
-      setCode(groupId, code);
+    if (groupId === activeGroup && view) {
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: code },
+      });
     } else {
-      // Will be set when the group is first created via getOrCreate
-      groups[groupId] = { _pending: code };
+      pending[groupId] = code;
     }
   }
 
   return {
     init,
     isReady,
-    getOrCreate,
-    getCurrentView,
+    mount,
+    switchTo,
     getCode,
-    setCode,
+    getCurrentView,
     undo,
     redo,
     adjustFontSize,
